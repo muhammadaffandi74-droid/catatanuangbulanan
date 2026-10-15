@@ -680,6 +680,46 @@
   .kosong-bulan svg{ width:18px; height:18px; flex:0 0 auto; color:var(--ink-3); }
   .kosong-bulan p{ margin:0; }
 
+  /* ============================================================
+     14. Sinkronisasi GitHub
+     ============================================================ */
+  .sync{
+    display:flex; align-items:center; gap:9px;
+    padding:9px 13px;
+    border-radius:13px;
+    background:var(--surface);
+    border:1px solid var(--line);
+    box-shadow:var(--sh-1);
+    font-size:.82rem; color:var(--ink-2);
+    animation:naik .5s .01s cubic-bezier(.2,.8,.2,1) both;
+  }
+  .sync-dot{
+    flex:0 0 auto; width:9px; height:9px; border-radius:50%;
+    background:var(--ink-3);
+  }
+  .sync[data-status="ok"] .sync-dot{ background:var(--masuk); }
+  .sync[data-status="gagal"] .sync-dot{ background:var(--keluar); }
+  .sync[data-status="memuat"] .sync-dot,
+  .sync[data-status="mengirim"] .sync-dot{ background:#e0a800; animation:denyut 1.1s ease-in-out infinite; }
+  .sync[data-status="butuh-token"] .sync-dot,
+  .sync[data-status="tanpa-konfig"] .sync-dot{ background:#e0a800; }
+  .sync-teks{ flex:1 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; }
+  .sync-btn{
+    flex:0 0 auto;
+    border:1px solid var(--line); border-radius:10px;
+    background:var(--surface-2); color:var(--ink-2);
+    padding:6px 11px;
+    font:inherit; font-size:.79rem; font-weight:650; cursor:pointer;
+    transition:background .16s ease, color .16s ease, border-color .16s ease;
+  }
+  .sync-btn:hover{ background:#eaeef5; color:var(--ink); border-color:#cfd6e2; }
+  .sync-btn[hidden]{ display:none; }
+
+  @keyframes denyut{
+    0%,100%{ opacity:1; }
+    50%{ opacity:.3; }
+  }
+
   @media (prefers-reduced-motion:reduce){
     *,*::before,*::after{
       animation-duration:.001ms !important;
@@ -707,6 +747,13 @@
       <h1 class="brand-title">Uang Masuk &amp; Keluar</h1>
     </div>
   </header>
+
+  <div class="sync" id="syncBar" data-status="memuat">
+    <span class="sync-dot" aria-hidden="true"></span>
+    <span class="sync-teks" id="syncTeks" role="status" aria-live="polite">Menghubungkan…</span>
+    <button type="button" class="sync-btn" id="btnMuatUlang" hidden>Muat ulang</button>
+    <button type="button" class="sync-btn" id="btnAturToken" hidden>Atur token</button>
+  </div>
 
   <section class="hero" aria-label="Ringkasan saldo">
     <p class="hero-label">Saldo saat ini</p>
@@ -906,6 +953,35 @@
   </div>
 </dialog>
 
+<!-- Dialog token GitHub (mode aman: token hanya di perangkat ini) -->
+<dialog class="modal" id="dialogToken" aria-labelledby="judulToken">
+  <div class="sheet sheet-sm">
+    <div class="sheet-head">
+      <h2 id="judulToken">Token GitHub</h2>
+      <button type="button" class="icon-btn" id="btnTutupToken" aria-label="Tutup">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <path d="M6 6l12 12M18 6L6 18"/>
+        </svg>
+      </button>
+    </div>
+    <p class="petunjuk" style="margin:0 0 14px; line-height:1.55">
+      Tempel <strong>Personal Access Token</strong> GitHub (fine-grained) yang punya izin
+      <em>Contents: Read and write</em> pada repo <strong id="tokenRepo">ini</strong>.
+      Token disimpan hanya di perangkat ini dan tidak diunggah ke mana pun.
+    </p>
+    <div class="field">
+      <label for="inputToken">Token</label>
+      <input id="inputToken" class="teks" type="password" autocomplete="off"
+             spellcheck="false" placeholder="github_pat_..." aria-describedby="err-token" />
+      <p class="err" id="err-token" role="alert"></p>
+    </div>
+    <div class="sheet-foot">
+      <button type="button" class="btn btn-ghost" id="btnTokenBatal">Batal</button>
+      <button type="button" class="btn btn-primary" id="btnTokenSimpan">Simpan token</button>
+    </div>
+  </div>
+</dialog>
+
 <div class="toast-wrap" id="toastWrap" role="status" aria-live="polite" aria-atomic="false"></div>
 
 <noscript>
@@ -917,6 +993,37 @@
 <script>
 (function () {
   'use strict';
+
+  /* ==========================================================
+     KONFIGURASI GITHUB — SIMPAN DATA BERSAMA ANTAR PERANGKAT
+     ----------------------------------------------------------
+     Data transaksi disimpan di sebuah file di repo GitHub Anda
+     (`file` di bawah), sehingga HP dan laptop membaca/menulis
+     sumber yang SAMA.
+
+     Cara kerja:
+     - Membaca: siapa pun boleh membaca `data.json` (repo publik).
+     - Menyimpan: butuh token GitHub (izin Contents: Read and write).
+
+     Soal `token`:
+     - KOSONG (disarankan): aplikasi meminta token SEKALI di tiap
+       perangkat, lalu menyimpannya di localStorage perangkat itu.
+       Token TIDAK ikut terpublikasi.
+     - DIISI di sini: token tertanam di file ini dan BISA DILIHAT
+       siapa saja yang membuka halaman (repo publik). GitHub juga
+       sering mencabut otomatis token yang terdeteksi di repo publik.
+       Kalau memakai cara ini, WAJIB pakai token fine-grained yang
+       HANYA berizin Contents pada repo ini saja.
+     ========================================================== */
+  const KONFIG = {
+    repo:   'muhammadaffandi74-droid/catatanuangbulanan', // "username/nama-repo"
+    branch: 'main',                                       // branch yang dipakai GitHub Pages
+    file:   'data.json',                                  // lokasi file data di dalam repo
+    token:  ''                                            // kosong = token per perangkat (aman)
+  };
+
+  const KUNCI_TOKEN = 'keuangan.gh.token';
+  const API_DASAR = 'https://api.github.com/repos/';
 
   /* ==========================================================
      Konstanta
@@ -998,6 +1105,18 @@
     konfTeks:       $('teksKonfirmasi'),
     konfYa:         $('btnKonfirmasiYa'),
     konfTidak:      $('btnKonfirmasiTidak'),
+
+    syncBar:        $('syncBar'),
+    syncTeks:       $('syncTeks'),
+    btnMuatUlang:   $('btnMuatUlang'),
+    btnAturToken:   $('btnAturToken'),
+    dlgToken:       $('dialogToken'),
+    tokenRepo:      $('tokenRepo'),
+    fToken:         $('inputToken'),
+    errToken:       $('err-token'),
+    btnTokenSimpan: $('btnTokenSimpan'),
+    btnTokenBatal:  $('btnTokenBatal'),
+    btnTutupToken:  $('btnTutupToken'),
 
     toastWrap:      $('toastWrap')
   };
@@ -1122,12 +1241,182 @@
     }
   }
 
-  function simpan() {
+  function simpan(pesanRemote) {
     const ok = simpanDiam(state.transaksi);
     if (!ok) {
       toast('Gagal menyimpan ke browser. Perubahan bisa hilang saat halaman ditutup.', 'waspada', true);
     }
+    dorongRemote(pesanRemote);
     return ok;
+  }
+
+  /* ==========================================================
+     Sinkronisasi GitHub
+     ========================================================== */
+  let shaRemote = null;      // sha file data.json (wajib untuk memperbarui file)
+  let tokenAktif = '';
+  let sinkronSedang = false;
+  let sudahMintaToken = false;
+
+  function konfigSiap() {
+    return !!(
+      KONFIG.repo && KONFIG.repo.indexOf('GANTI_') === -1 &&
+      KONFIG.branch && KONFIG.file
+    );
+  }
+
+  function bacaTokenTersimpan() {
+    if (KONFIG.token) return KONFIG.token;   // token tertanam (opsional, kurang aman)
+    try { return window.localStorage.getItem(KUNCI_TOKEN) || ''; } catch (e) { return ''; }
+  }
+
+  function simpanTokenLokal(t) {
+    try { window.localStorage.setItem(KUNCI_TOKEN, t); } catch (e) { /* diabaikan */ }
+  }
+
+  function urlIsi() {
+    const jalur = String(KONFIG.file).split('/').map(encodeURIComponent).join('/');
+    return API_DASAR + KONFIG.repo + '/contents/' + jalur;
+  }
+
+  function headerApi(pakaiToken) {
+    const h = { 'Accept': 'application/vnd.github+json' };
+    if (pakaiToken && tokenAktif) h['Authorization'] = 'Bearer ' + tokenAktif;
+    return h;
+  }
+
+  function keBase64(teks) {
+    const bytes = new TextEncoder().encode(teks);
+    let bin = '';
+    for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+    return btoa(bin);
+  }
+
+  function dariBase64(b64) {
+    const bin = atob(String(b64).replace(/\s/g, ''));
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return new TextDecoder().decode(bytes);
+  }
+
+  function statusSinkron(kode, pesan) {
+    if (!el.syncBar) return;
+    el.syncBar.dataset.status = kode;
+    const peta = {
+      memuat: 'Memuat data dari GitHub…',
+      mengirim: 'Menyimpan ke GitHub…',
+      ok: 'Tersinkron dengan GitHub',
+      gagal: 'Gagal sinkron: ',
+      'butuh-token': 'Perlu token GitHub untuk menyimpan',
+      'tanpa-konfig': 'Mode lokal — konfigurasi GitHub belum diisi'
+    };
+    el.syncTeks.textContent = (peta[kode] || '') + (kode === 'gagal' && pesan ? pesan : '');
+
+    if (el.btnMuatUlang) el.btnMuatUlang.hidden = !konfigSiap();
+    if (el.btnAturToken) {
+      el.btnAturToken.hidden = !konfigSiap() || !!KONFIG.token;
+      el.btnAturToken.textContent = tokenAktif ? 'Ganti token' : 'Atur token';
+    }
+  }
+
+  async function githubAmbil() {
+    const res = await fetch(
+      urlIsi() + '?ref=' + encodeURIComponent(KONFIG.branch) + '&t=' + Date.now(),
+      { headers: headerApi(true), cache: 'no-store' }
+    );
+    if (res.status === 404) return { ada: false, data: [], sha: null };
+    if (res.status === 401) throw new Error('token tidak valid');
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const j = await res.json();
+    let data = [];
+    if (j && typeof j.content === 'string' && j.content) {
+      try { data = JSON.parse(dariBase64(j.content)); } catch (e) { data = []; }
+    }
+    return { ada: true, data: Array.isArray(data) ? data : [], sha: (j && j.sha) ? j.sha : null };
+  }
+
+  async function githubTulis(daftar, pesan) {
+    const isi = keBase64(JSON.stringify(daftar));
+
+    function put(sha) {
+      const body = { message: pesan || 'Perbarui data keuangan', content: isi, branch: KONFIG.branch };
+      if (sha) body.sha = sha;
+      return fetch(urlIsi(), {
+        method: 'PUT',
+        headers: Object.assign({ 'Content-Type': 'application/json' }, headerApi(true)),
+        body: JSON.stringify(body)
+      });
+    }
+
+    let res = await put(shaRemote);
+
+    if (res.status === 409 || res.status === 422) {
+      // shaRemote usang: perangkat lain menyimpan lebih dulu. Ambil sha terbaru lalu coba lagi.
+      const segar = await githubAmbil();
+      shaRemote = segar.sha;
+      res = await put(shaRemote);
+    }
+
+    if (res.status === 401 || res.status === 403) throw new Error('token ditolak (' + res.status + ')');
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+
+    const j = await res.json();
+    if (j && j.content && j.content.sha) shaRemote = j.content.sha;
+  }
+
+  async function dorongRemote(pesan) {
+    if (!konfigSiap()) return;
+
+    if (!tokenAktif) {
+      statusSinkron('butuh-token');
+      // Minta token sekali, lalu ulangi penyimpanan otomatis.
+      if (!sudahMintaToken && el.dlgToken && !dialogTerbuka(el.dlgToken)) {
+        sudahMintaToken = true;
+        bukaDialogToken(function () { dorongRemote(pesan); });
+      }
+      return;
+    }
+
+    if (sinkronSedang) return;
+    sinkronSedang = true;
+    statusSinkron('mengirim');
+    try {
+      await githubTulis(state.transaksi, pesan);
+      statusSinkron('ok');
+    } catch (e) {
+      const m = (e && e.message) ? e.message : 'tidak diketahui';
+      if (m.indexOf('token') !== -1) tokenAktif = '';
+      statusSinkron('gagal', m);
+    } finally {
+      sinkronSedang = false;
+    }
+  }
+
+  async function tarikRemote(manual) {
+    if (!konfigSiap()) { statusSinkron('tanpa-konfig'); return; }
+    statusSinkron('memuat');
+    try {
+      const r = await githubAmbil();
+      shaRemote = r.sha;
+      if (r.ada) {
+        const bersih = [];
+        for (let i = 0; i < r.data.length; i++) {
+          const t = normalisasi(r.data[i]);
+          if (t) bersih.push(t);
+        }
+        state.transaksi = bersih;
+        simpanDiam(state.transaksi);
+      }
+      if (!manual) bulanTerpilih = pilihBulanAwal(state.transaksi);
+      render();
+      statusSinkron(tokenAktif ? 'ok' : 'butuh-token');
+      if (manual) toast('Data dimuat ulang dari GitHub.');
+      return r.ada;
+    } catch (e) {
+      statusSinkron('gagal', (e && e.message) ? e.message : 'tidak diketahui');
+      if (manual) toast('Gagal memuat dari GitHub.', 'waspada');
+      return null;
+    }
   }
 
   /* ==========================================================
@@ -1744,7 +2033,7 @@
           break;
         }
       }
-      simpan();
+      simpan('Ubah transaksi');
       tutupForm();
       render();
       toast('Perubahan berhasil disimpan.');
@@ -1758,7 +2047,7 @@
         catatan: catatan.slice(0, 140),
         dibuatPada: new Date().toISOString()
       });
-      simpan();
+      simpan('Tambah transaksi');
       tutupForm();
       render();
       toast('Transaksi berhasil ditambahkan.');
@@ -1779,7 +2068,7 @@
       labelYa: 'Hapus'
     }, function () {
       state.transaksi = state.transaksi.filter(function (x) { return x.id !== id; });
-      simpan();
+      simpan('Hapus transaksi');
       render();
       toast('Transaksi dihapus.');
     });
@@ -1795,19 +2084,86 @@
   });
 
   /* ==========================================================
+     Token GitHub & tombol sinkron
+     ========================================================== */
+  let aksiSetelahToken = null;
+
+  function bukaDialogToken(aksi) {
+    aksiSetelahToken = aksi || null;
+    el.errToken.textContent = '';
+    el.fToken.value = tokenAktif || '';
+    if (el.tokenRepo) el.tokenRepo.textContent = KONFIG.repo;
+    bukaDialog(el.dlgToken);
+    window.setTimeout(function () { el.fToken.focus(); }, 60);
+  }
+
+  function tutupDialogToken() {
+    aksiSetelahToken = null;
+    tutupDialog(el.dlgToken);
+  }
+
+  function simpanTokenDariDialog() {
+    const nilai = el.fToken.value.trim();
+    if (!nilai) {
+      el.errToken.textContent = 'Token belum diisi.';
+      el.fToken.focus();
+      return;
+    }
+    tokenAktif = nilai;
+    simpanTokenLokal(nilai);
+    const aksi = aksiSetelahToken;
+    aksiSetelahToken = null;
+    tutupDialog(el.dlgToken);
+    statusSinkron('ok');
+    toast('Token disimpan di perangkat ini.');
+    if (typeof aksi === 'function') aksi();
+  }
+
+  el.btnTokenSimpan.addEventListener('click', simpanTokenDariDialog);
+  el.btnTokenBatal.addEventListener('click', tutupDialogToken);
+  el.btnTutupToken.addEventListener('click', tutupDialogToken);
+  el.dlgToken.addEventListener('click', function (e) {
+    if (e.target === el.dlgToken) tutupDialogToken();
+  });
+  el.fToken.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') { e.preventDefault(); simpanTokenDariDialog(); }
+  });
+
+  el.btnMuatUlang.addEventListener('click', function () { tarikRemote(true); });
+  el.btnAturToken.addEventListener('click', function () { bukaDialogToken(null); });
+
+  /* ==========================================================
      Mulai
      ========================================================== */
-  if (!dukunganDialog) {
-    document.documentElement.classList.add('dialog-fallback');
+  async function mulai() {
+    if (!dukunganDialog) {
+      document.documentElement.classList.add('dialog-fallback');
+    }
+
+    tokenAktif = bacaTokenTersimpan();
+
+    // Tampilkan dulu data dari cache lokal supaya halaman langsung terpakai.
+    state.transaksi = muat();
+    bulanTerpilih = pilihBulanAwal(state.transaksi);
+    render();
+
+    if (konfigSiap()) {
+      const adaRemote = await tarikRemote(false);
+      // Perangkat ini sudah punya data lokal, tapi file di GitHub belum ada:
+      // buat berkasnya supaya perangkat lain bisa ikut membaca.
+      if (adaRemote === false && tokenAktif && state.transaksi.length > 0) {
+        dorongRemote('Buat data awal');
+      }
+    } else {
+      statusSinkron('tanpa-konfig');
+    }
+
+    if (penyimpananHilang) {
+      toast('Penyimpanan browser tidak tersedia. Data hanya bertahan selama halaman terbuka.', 'waspada', true);
+    }
   }
 
-  state.transaksi = muat();
-  bulanTerpilih = pilihBulanAwal(state.transaksi);
-  render();
-
-  if (penyimpananHilang) {
-    toast('Penyimpanan browser tidak tersedia. Data hanya bertahan selama halaman terbuka.', 'waspada', true);
-  }
+  mulai();
 })();
 </script>
 </body>
