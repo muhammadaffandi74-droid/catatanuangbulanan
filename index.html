@@ -475,6 +475,76 @@
 
   .petunjuk{ margin:0; font-size:.77rem; color:var(--ink-3); }
 
+  /* Chip kategori cepat: satu baris, bisa digeser ke samping.
+     Dibatasi 1 baris supaya form tetap pendek walau kategori Keluar
+     ada 20 buah. */
+  .chips{ position:relative; margin-top:2px; }
+  .chips::before, .chips::after{
+    content:""; position:absolute; top:0; bottom:0; width:34px;
+    pointer-events:none; opacity:0; z-index:1;
+    transition:opacity .18s ease;
+  }
+  .chips::before{
+    left:0;
+    background:linear-gradient(90deg, var(--surface) 18%, rgba(255,255,255,0));
+  }
+  .chips::after{
+    right:0;
+    background:linear-gradient(270deg, var(--surface) 18%, rgba(255,255,255,0));
+  }
+  .chips.ada-kiri::before{ opacity:1; }
+  .chips.ada-kanan::after{ opacity:1; }
+
+  .chip-track{
+    display:flex; gap:8px;
+    width:100%; min-width:0;
+    overflow-x:auto; overflow-y:hidden;
+    padding:4px 2px; margin:0 -2px;
+    scroll-snap-type:x proximity;
+    scroll-padding-left:2px;
+    -webkit-overflow-scrolling:touch;
+    scrollbar-width:none;
+  }
+  .chip-track::-webkit-scrollbar{ display:none; }
+
+  .chip{
+    flex:0 0 auto;
+    display:inline-flex; align-items:center;
+    min-height:44px; padding:0 14px;
+    border:1px solid var(--line); border-radius:999px;
+    background:var(--surface); color:var(--ink-2);
+    font:inherit; font-size:.9rem; font-weight:600; white-space:nowrap;
+    cursor:pointer; scroll-snap-align:start;
+    -webkit-tap-highlight-color:transparent;
+    transition:background .16s ease, color .16s ease, border-color .16s ease, box-shadow .16s ease;
+  }
+  .chip:hover{ background:var(--surface-2); color:var(--ink); border-color:#cfd6e2; }
+  .chip:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
+
+  /* Penanda terpilih: ikon centang muncul (bukan hanya warna). */
+  .chip .cek{
+    display:inline-flex; align-items:center; justify-content:center;
+    width:0; opacity:0; overflow:hidden;
+    transition:width .16s ease, margin .16s ease, opacity .16s ease;
+  }
+  .chip .cek svg{ width:15px; height:15px; flex:0 0 auto; }
+  .chip[aria-pressed="true"] .cek{ width:15px; margin-left:6px; opacity:1; }
+  .chip[aria-pressed="true"] .cek svg{ animation:cek-muncul .18s ease both; }
+
+  .chips[data-jenis="masuk"] .chip[aria-pressed="true"]{
+    background:var(--masuk-soft); color:var(--masuk-ink); border-color:#b7e6d5;
+    box-shadow:inset 0 0 0 1px rgba(15,157,110,.22);
+  }
+  .chips[data-jenis="keluar"] .chip[aria-pressed="true"]{
+    background:var(--keluar-soft); color:var(--keluar-ink); border-color:#f5cbd9;
+    box-shadow:inset 0 0 0 1px rgba(224,65,106,.2);
+  }
+
+  @keyframes cek-muncul{
+    from{ transform:scale(.4); }
+    to{ transform:scale(1); }
+  }
+
   /* ============================================================
      10. Toast
      ============================================================ */
@@ -913,24 +983,47 @@
 
       <div class="field">
         <label for="kategori">Kategori <span class="req" aria-hidden="true">*</span></label>
-        <input id="kategori" name="kategori" class="teks" type="text" list="daftarKategori"
-               autocomplete="off" placeholder="Contoh: Makan &amp; Minum" maxlength="60"
+        <input id="kategori" name="kategori" class="teks" type="text" list="daftarKategoriMasuk"
+               autocomplete="off" placeholder="Contoh: Gaji Pokok" maxlength="60"
                aria-describedby="err-kategori" />
-        <datalist id="daftarKategori">
-          <option value="Gaji"></option>
-          <option value="Bonus"></option>
-          <option value="Usaha"></option>
-          <option value="Hadiah"></option>
-          <option value="Makan &amp; Minum"></option>
-          <option value="Transportasi"></option>
-          <option value="Belanja"></option>
-          <option value="Tagihan"></option>
-          <option value="Sewa"></option>
-          <option value="Kesehatan"></option>
-          <option value="Pendidikan"></option>
-          <option value="Hiburan"></option>
-          <option value="Tabungan"></option>
+        <!-- Saran kategori pemasukan (dipakai saat jenis = Masuk) -->
+        <datalist id="daftarKategoriMasuk">
+          <option value="Gaji Pokok"></option>
+          <option value="Gaji TPP"></option>
+          <option value="Gaji TPG"></option>
+          <option value="Uang Les dan Lain Lain"></option>
         </datalist>
+        <!-- Saran kategori pengeluaran (dipakai saat jenis = Keluar) -->
+        <datalist id="daftarKategoriKeluar">
+          <option value="Tagihan Listrik"></option>
+          <option value="Tagihan Air"></option>
+          <option value="Tagihan Internet"></option>
+          <option value="Uang Keamanan"></option>
+          <option value="Uang Kebersihan"></option>
+          <option value="Infaq Masjid"></option>
+          <option value="Iuran Fardhu Kipayah"></option>
+          <option value="Susu dan Lain lain"></option>
+          <option value="Uang Makan"></option>
+          <option value="Uang Kebutuhan Pokok"></option>
+          <option value="Galon"></option>
+          <option value="Laundry"></option>
+          <option value="Tabungan"></option>
+          <option value="Uang sekolah"></option>
+          <option value="Bensin Ayah"></option>
+          <option value="Iuran PGRI dan Sosial"></option>
+          <option value="Cicilan rumah"></option>
+          <option value="Cicilan Hp"></option>
+          <option value="Cicilan Mobil"></option>
+          <option value="Pengeluaran lain lain"></option>
+        </datalist>
+        <!-- Jalur cepat: chip kategori untuk jenis yang sedang aktif -->
+        <div class="chips" id="chipSaran" data-jenis="masuk">
+          <div class="chip-track" id="chipKategori" role="group"
+               aria-label="Pilih kategori cepat" aria-describedby="chip-petunjuk"></div>
+        </div>
+        <p class="sr-only" id="chip-petunjuk">
+          Ketuk salah satu untuk mengisi kolom Kategori. Geser ke samping untuk melihat pilihan lain.
+        </p>
         <p class="err" id="err-kategori" role="alert"></p>
       </div>
 
@@ -1123,6 +1216,8 @@
     fCatatan:       $('catatan'),
     errJumlah:      $('err-jumlah'),
     errKategori:    $('err-kategori'),
+    chipSaran:      $('chipSaran'),
+    chipKategori:   $('chipKategori'),
     errTanggal:     $('err-tanggal'),
     btnSimpan:      $('btnSimpan'),
     btnBatal:       $('btnBatal'),
@@ -1148,6 +1243,94 @@
 
     toastWrap:      $('toastWrap')
   };
+
+  /* ==========================================================
+     Chip kategori cepat (jalur pintas di samping datalist)
+     ========================================================== */
+  const CHIP_MASUK = [
+    'Gaji Pokok',
+    'Gaji TPP',
+    'Gaji TPG',
+    'Uang Les dan Lain Lain'
+  ];
+  const CHIP_KELUAR = [
+    'Tagihan Listrik',
+    'Tagihan Air',
+    'Tagihan Internet',
+    'Uang Keamanan',
+    'Uang Kebersihan',
+    'Infaq Masjid',
+    'Iuran Fardhu Kipayah',
+    'Susu dan Lain lain',
+    'Uang Makan',
+    'Uang Kebutuhan Pokok',
+    'Galon',
+    'Laundry',
+    'Tabungan',
+    'Uang sekolah',
+    'Bensin Ayah',
+    'Iuran PGRI dan Sosial',
+    'Cicilan rumah',
+    'Cicilan Hp',
+    'Cicilan Mobil',
+    'Pengeluaran lain lain'
+  ];
+
+  // Tampilkan / sembunyikan petunjuk tepi saat masih ada chip di samping.
+  function perbaruiPetunjukChip() {
+    const track = el.chipKategori;
+    const maks = track.scrollWidth - track.clientWidth;
+    el.chipSaran.classList.toggle('ada-kiri', track.scrollLeft > 4);
+    el.chipSaran.classList.toggle('ada-kanan', maks > 4 && track.scrollLeft < maks - 4);
+  }
+
+  // Chip dianggap terpilih bila kolom Kategori sama persis dengan chip itu.
+  function perbaruiChipAktif() {
+    const nilai = el.fKategori.value;
+    const chip = el.chipKategori.querySelectorAll('.chip');
+    for (let i = 0; i < chip.length; i++) {
+      const aktif = chip[i].getAttribute('data-kategori') === nilai;
+      chip[i].setAttribute('aria-pressed', aktif ? 'true' : 'false');
+    }
+    perbaruiPetunjukChip();
+  }
+
+  function bangunChipKategori(jenis) {
+    const keluar = jenis === 'keluar';
+    const daftar = keluar ? CHIP_KELUAR : CHIP_MASUK;
+    el.chipSaran.setAttribute('data-jenis', keluar ? 'keluar' : 'masuk');
+
+    let html = '';
+    for (let i = 0; i < daftar.length; i++) {
+      html += '<button type="button" class="chip" data-kategori="' + daftar[i] + '" aria-pressed="false">' +
+        '<span class="chip-teks"></span>' +
+        '<span class="cek" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>' +
+        '</button>';
+    }
+    el.chipKategori.innerHTML = html;
+
+    const teks = el.chipKategori.querySelectorAll('.chip-teks');
+    for (let i = 0; i < teks.length; i++) teks[i].textContent = daftar[i];
+
+    el.chipKategori.scrollLeft = 0;
+    perbaruiChipAktif();
+  }
+
+  // Ketuk chip: isi kategori. Ketuk chip yang sedang aktif: kosongkan (toggle).
+  el.chipKategori.addEventListener('click', function (e) {
+    const chip = e.target.closest ? e.target.closest('.chip') : null;
+    if (!chip || !el.chipKategori.contains(chip)) return;
+    const nama = chip.getAttribute('data-kategori') || '';
+    el.fKategori.value = (el.fKategori.value === nama) ? '' : nama;
+    el.errKategori.textContent = '';
+    el.fKategori.removeAttribute('aria-invalid');
+    perbaruiChipAktif();
+  });
+
+  el.chipKategori.addEventListener('scroll', perbaruiPetunjukChip, { passive: true });
+  window.addEventListener('resize', perbaruiPetunjukChip);
+
+  bangunChipKategori('masuk');
 
   /* ==========================================================
      Pemformat
@@ -1853,11 +2036,27 @@
     return el.form.querySelector('input[name="jenis"]:checked');
   }
 
+  // Saran kategori mengikuti jenis: Masuk = pemasukan, Keluar = pengeluaran.
+  function perbaruiSaranKategori(jenis) {
+    const keluar = jenis === 'keluar';
+    el.fKategori.setAttribute('list', keluar ? 'daftarKategoriKeluar' : 'daftarKategoriMasuk');
+    el.fKategori.placeholder = keluar ? 'Contoh: Uang Makan' : 'Contoh: Gaji Pokok';
+    bangunChipKategori(keluar ? 'keluar' : 'masuk');
+  }
+
   function setJenis(nilai) {
     const daftar = el.form.querySelectorAll('input[name="jenis"]');
     for (let i = 0; i < daftar.length; i++) {
       daftar[i].checked = (daftar[i].value === nilai);
     }
+    perbaruiSaranKategori(nilai);
+  }
+
+  const radioJenis = el.form.querySelectorAll('input[name="jenis"]');
+  for (let i = 0; i < radioJenis.length; i++) {
+    radioJenis[i].addEventListener('change', function () {
+      perbaruiSaranKategori(this.value);
+    });
   }
 
   function angkaDariTeks(teks) {
@@ -1924,10 +2123,12 @@
       el.fCatatan.value = '';
     }
 
+    perbaruiChipAktif();
     nilaiAwal = nilaiSekarang();
 
     bukaDialog(el.dlgForm);
     window.setTimeout(function () { el.fJumlah.focus(); }, 60);
+    window.setTimeout(perbaruiPetunjukChip, 120);
   }
 
   function tutupForm() {
@@ -1977,6 +2178,7 @@
   });
 
   el.fKategori.addEventListener('input', function () {
+    perbaruiChipAktif();
     if (el.fKategori.value.trim() && el.errKategori.textContent) {
       el.errKategori.textContent = '';
       el.fKategori.removeAttribute('aria-invalid');
