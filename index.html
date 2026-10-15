@@ -237,6 +237,8 @@
     list-style:none; margin:0; padding:0;
     display:flex; flex-direction:column; gap:10px;
   }
+  .list-head + .daftar,
+  .list-head + .kosong{ margin-top:14px; }
 
   .item{
     display:flex; align-items:center; gap:12px;
@@ -669,19 +671,36 @@
   }
   .select-chevron svg{ width:16px; height:16px; }
 
-  .kosong-bulan{
-    display:flex; align-items:center; gap:10px;
-    margin-top:2px; padding:16px;
-    background:var(--surface);
-    border:1px dashed #d5dbe6; border-radius:var(--r-md);
-    font-size:.88rem; color:var(--ink-2);
+  /* ============================================================
+     14. Tab menu utama
+     ============================================================ */
+  .tabs{
+    display:grid; grid-template-columns:1fr 1fr; gap:6px;
+    padding:6px;
+    border-radius:16px;
+    background:var(--surface); border:1px solid var(--line);
+    box-shadow:var(--sh-1);
+    animation:naik .5s .01s cubic-bezier(.2,.8,.2,1) both;
   }
-  .kosong-bulan[hidden]{ display:none; }
-  .kosong-bulan svg{ width:18px; height:18px; flex:0 0 auto; color:var(--ink-3); }
-  .kosong-bulan p{ margin:0; }
+  .tab{
+    min-height:46px; border:0; border-radius:12px;
+    background:transparent; color:var(--ink-2);
+    font:inherit; font-size:.95rem; font-weight:650; letter-spacing:.005em;
+    cursor:pointer; -webkit-tap-highlight-color:transparent;
+    transition:background .18s ease, color .18s ease, box-shadow .18s ease;
+  }
+  .tab:hover:not([aria-selected="true"]){ background:var(--surface-2); color:var(--ink); }
+  .tab[aria-selected="true"]{
+    color:#f2fffb;
+    background:linear-gradient(180deg,#12857a,#0c6560);
+    box-shadow:0 8px 20px -12px rgba(12,101,96,.95), inset 0 1px 0 rgba(255,255,255,.16);
+  }
+
+  .panel{ display:flex; flex-direction:column; gap:18px; }
+  .panel[hidden]{ display:none; }
 
   /* ============================================================
-     14. Sinkronisasi GitHub
+     15. Sinkronisasi GitHub
      ============================================================ */
   .sync{
     display:flex; align-items:center; gap:9px;
@@ -755,66 +774,60 @@
     <button type="button" class="sync-btn" id="btnAturToken" hidden>Atur token</button>
   </div>
 
-  <section class="hero" aria-label="Ringkasan saldo">
-    <p class="hero-label">Saldo saat ini</p>
-    <p class="hero-value" id="totalSaldo">Rp 0</p>
-    <div class="splits">
-      <div class="split in">
-        <span class="lbl">Masuk</span>
-        <span class="val" id="totalMasuk">Rp 0</span>
-      </div>
-      <div class="split out">
-        <span class="lbl">Keluar</span>
-        <span class="val" id="totalKeluar">Rp 0</span>
-      </div>
-    </div>
-  </section>
+  <div class="tabs" role="tablist" aria-label="Menu utama">
+    <button type="button" class="tab" id="tabTransaksi" role="tab" aria-selected="true" aria-controls="panelTransaksi">Transaksi</button>
+    <button type="button" class="tab" id="tabLaporan" role="tab" aria-selected="false" aria-controls="panelLaporan">Laporan</button>
+  </div>
 
-  <section class="laporan" aria-labelledby="judulLaporan">
-    <div class="laporan-head">
-      <div class="laporan-head-kiri">
-        <p class="laporan-kicker">Laporan Bulanan</p>
-        <h2 class="laporan-judul" id="judulLaporan">Semua bulan</h2>
-      </div>
-      <div class="laporan-saldo-box">
-        <span class="laporan-saldo-lbl">Saldo</span>
-        <span class="laporan-saldo" id="laporanSaldo">Rp 0</span>
-      </div>
-    </div>
+  <div class="panel" id="panelTransaksi" role="tabpanel" aria-labelledby="tabTransaksi">
 
-    <div class="laporan-splits">
-      <div class="lap-split in">
-        <span class="lbl">Masuk</span>
-        <span class="val" id="laporanMasuk">Rp 0</span>
+    <section class="hero" aria-label="Ringkasan saldo">
+      <p class="hero-label">Saldo keseluruhan</p>
+      <p class="hero-value" id="totalSaldo">Rp 0</p>
+      <div class="splits">
+        <div class="split in">
+          <span class="lbl">Masuk</span>
+          <span class="val" id="totalMasuk">Rp 0</span>
+        </div>
+        <div class="split out">
+          <span class="lbl">Keluar</span>
+          <span class="val" id="totalKeluar">Rp 0</span>
+        </div>
       </div>
-      <div class="lap-split out">
-        <span class="lbl">Keluar</span>
-        <span class="val" id="laporanKeluar">Rp 0</span>
+    </section>
+
+    <section aria-labelledby="judulRiwayat">
+      <div class="list-head">
+        <h2 id="judulRiwayat">
+          Riwayat Transaksi
+          <span class="count" id="jumlahTransaksi" title="Jumlah seluruh transaksi">0</span>
+        </h2>
+        <button type="button" class="btn btn-primary" id="btnTambah">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+            <path d="M12 5v14M5 12h14"/>
+          </svg>
+          Tambah Transaksi
+        </button>
       </div>
-    </div>
 
-    <div class="laporan-rinci">
-      <h3 class="rinci-judul">Rincian per kategori</h3>
-      <ul class="rincian" id="rincianKategori"></ul>
-      <p class="rinci-kosong" id="rinciKosong" hidden></p>
-    </div>
+      <ul class="daftar" id="daftarTransaksi" aria-labelledby="judulRiwayat"></ul>
 
-    <p class="sr-only" id="laporanStatus" role="status"></p>
-  </section>
+      <div class="kosong" id="kosong" hidden>
+        <div class="kosong-art" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="4.5" y="3" width="15" height="18" rx="2.5"/>
+            <path d="M8.5 8h7M8.5 12h7M8.5 16h4"/>
+          </svg>
+        </div>
+        <h3>Belum ada transaksi</h3>
+        <p>Semua uang masuk dan keluar yang kamu catat akan muncul di sini. Yuk mulai dari yang pertama.</p>
+        <button type="button" class="btn btn-primary" id="btnTambahKosong">Tambah transaksi pertama</button>
+      </div>
+    </section>
 
-  <section aria-labelledby="judulRiwayat">
-    <div class="list-head">
-      <h2 id="judulRiwayat">
-        Riwayat Transaksi
-        <span class="count" id="jumlahTransaksi" title="Jumlah transaksi pada tampilan ini">0</span>
-      </h2>
-      <button type="button" class="btn btn-primary" id="btnTambah">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
-          <path d="M12 5v14M5 12h14"/>
-        </svg>
-        Tambah Transaksi
-      </button>
-    </div>
+  </div>
+
+  <div class="panel" id="panelLaporan" role="tabpanel" aria-labelledby="tabLaporan" hidden>
 
     <div class="list-filter">
       <label class="filter-lbl" for="pilihBulan">Periode</label>
@@ -824,31 +837,42 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9.5l6 6 6-6"/></svg>
         </span>
       </div>
-      <span class="sr-only" id="pilihBulanInfo">Mengatur bulan pada laporan dan daftar transaksi.</span>
+      <span class="sr-only" id="pilihBulanInfo">Memilih bulan untuk laporan.</span>
     </div>
 
-    <ul class="daftar" id="daftarTransaksi" aria-labelledby="judulRiwayat"></ul>
-
-    <div class="kosong" id="kosong" hidden>
-      <div class="kosong-art" aria-hidden="true">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="4.5" y="3" width="15" height="18" rx="2.5"/>
-          <path d="M8.5 8h7M8.5 12h7M8.5 16h4"/>
-        </svg>
+    <section class="laporan" aria-labelledby="judulLaporan">
+      <div class="laporan-head">
+        <div class="laporan-head-kiri">
+          <p class="laporan-kicker">Laporan Bulanan</p>
+          <h2 class="laporan-judul" id="judulLaporan">Semua bulan</h2>
+        </div>
+        <div class="laporan-saldo-box">
+          <span class="laporan-saldo-lbl">Saldo</span>
+          <span class="laporan-saldo" id="laporanSaldo">Rp 0</span>
+        </div>
       </div>
-      <h3>Belum ada transaksi</h3>
-      <p>Semua uang masuk dan keluar yang kamu catat akan muncul di sini. Yuk mulai dari yang pertama.</p>
-      <button type="button" class="btn btn-primary" id="btnTambahKosong">Tambah transaksi pertama</button>
-    </div>
 
-    <div class="kosong-bulan" id="kosongBulan" hidden>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <rect x="3.5" y="5" width="17" height="15" rx="2.5"/>
-        <path d="M3.5 9.5h17M8 3.5v3M16 3.5v3"/>
-      </svg>
-      <p>Belum ada transaksi di bulan ini. Pilih periode lain atau tambahkan transaksi baru.</p>
-    </div>
-  </section>
+      <div class="laporan-splits">
+        <div class="lap-split in">
+          <span class="lbl">Masuk</span>
+          <span class="val" id="laporanMasuk">Rp 0</span>
+        </div>
+        <div class="lap-split out">
+          <span class="lbl">Keluar</span>
+          <span class="val" id="laporanKeluar">Rp 0</span>
+        </div>
+      </div>
+
+      <div class="laporan-rinci">
+        <h3 class="rinci-judul">Rincian per kategori</h3>
+        <ul class="rincian" id="rincianKategori"></ul>
+        <p class="rinci-kosong" id="rinciKosong" hidden></p>
+      </div>
+
+      <p class="sr-only" id="laporanStatus" role="status"></p>
+    </section>
+
+  </div>
 
 </div>
 
@@ -1072,7 +1096,11 @@
     totalKeluar:    $('totalKeluar'),
     daftar:         $('daftarTransaksi'),
     kosong:         $('kosong'),
-    kosongBulan:    $('kosongBulan'),
+
+    tabTransaksi:   $('tabTransaksi'),
+    tabLaporan:     $('tabLaporan'),
+    panelTransaksi: $('panelTransaksi'),
+    panelLaporan:   $('panelLaporan'),
     jumlahTeks:     $('jumlahTransaksi'),
     btnTambah:      $('btnTambah'),
     btnTambahKosong:$('btnTambahKosong'),
@@ -1472,7 +1500,7 @@
     return daftarBulan(daftar).indexOf(sekarang) !== -1 ? sekarang : 'semua';
   }
 
-  function transaksiTampil() {
+  function transaksiPeriode() {
     if (bulanTerpilih === 'semua') return state.transaksi.slice();
     return state.transaksi.filter(function (t) {
       return kunciBulan(t.tanggal) === bulanTerpilih;
@@ -1710,26 +1738,23 @@
     }
     isiPilihanBulan(bulanAda);
 
-    const data = urutkan(transaksiTampil());
+    const data = urutkan(transaksiPeriode());
 
     renderLaporan(data);
 
-    el.jumlahTeks.textContent = String(data.length);
-    el.jumlahTeks.title = bulanTerpilih === 'semua'
-      ? 'Jumlah seluruh transaksi'
-      : 'Jumlah transaksi di bulan terpilih';
+    // Daftar pada tab "Transaksi" selalu menampilkan SELURUH transaksi.
+    el.jumlahTeks.textContent = String(semuaUrut.length);
 
     el.daftar.textContent = '';
     if (!sudahRender) el.daftar.classList.add('animasi');
 
-    for (let i = 0; i < data.length; i++) {
-      el.daftar.appendChild(buatBaris(data[i], i));
+    for (let i = 0; i < semuaUrut.length; i++) {
+      el.daftar.appendChild(buatBaris(semuaUrut[i], i));
     }
 
-    const belumAdaData = state.transaksi.length === 0;
+    const belumAdaData = semuaUrut.length === 0;
     el.kosong.hidden = !belumAdaData;
-    el.jumlahTeks.hidden = data.length === 0;
-    el.kosongBulan.hidden = !(data.length === 0 && !belumAdaData);
+    el.jumlahTeks.hidden = belumAdaData;
 
     sudahRender = true;
   }
@@ -2073,6 +2098,34 @@
       toast('Transaksi dihapus.');
     });
   }
+
+  /* ==========================================================
+     Tab menu: Transaksi / Laporan
+     ========================================================== */
+  function bukaTab(nama) {
+    const keLaporan = nama === 'laporan';
+    el.tabTransaksi.setAttribute('aria-selected', keLaporan ? 'false' : 'true');
+    el.tabLaporan.setAttribute('aria-selected', keLaporan ? 'true' : 'false');
+    el.tabTransaksi.tabIndex = keLaporan ? -1 : 0;
+    el.tabLaporan.tabIndex = keLaporan ? 0 : -1;
+    el.panelTransaksi.hidden = keLaporan;
+    el.panelLaporan.hidden = !keLaporan;
+    try { window.scrollTo(0, 0); } catch (e) { /* diabaikan */ }
+  }
+
+  el.tabTransaksi.addEventListener('click', function () { bukaTab('transaksi'); });
+  el.tabLaporan.addEventListener('click', function () { bukaTab('laporan'); });
+
+  [el.tabTransaksi, el.tabLaporan].forEach(function (tombol) {
+    tombol.addEventListener('keydown', function (e) {
+      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+      e.preventDefault();
+      const keLaporan = e.currentTarget === el.tabTransaksi;
+      const tujuan = keLaporan ? el.tabLaporan : el.tabTransaksi;
+      bukaTab(keLaporan ? 'laporan' : 'transaksi');
+      tujuan.focus();
+    });
+  });
 
   /* ==========================================================
      Pemilih bulan
